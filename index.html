@@ -3,8 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>Mapbox矢量瓦片分析处理工具</title>
+    <style>
+        body { padding: 0; margin: 0; }
+        #canvas { border-right: 1px dotted #aaa; border-bottom: 1px dotted #aaa;}
+        #canvas.hover { background: #cfc; }
+        button { font-size: 16px; background: white; border: 1px solid #ccc;
+            position: absolute; top: 5px; left: 5px;}
+        button:hover { border-color: black; }
+    </style>
 </head>
 <body>
+<canvas id="canvas"></canvas>
 <script src="index.js"></script>
+<script src="src/viz.js"></script>
 </body>
 </html>
