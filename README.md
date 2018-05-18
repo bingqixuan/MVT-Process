@@ -1,2 +1,13 @@
 # MVT-Process
-Mapbox矢量瓦片解析、调试、处理工具
+Mapbox矢量瓦片解析、调试、处理工具，消息在控制台中打印
+
+-----------------------------------
+## 安装
+```bash
+   npm install
+```
+
+## 运行
+```bash
+    parcel index.html
+```

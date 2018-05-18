@@ -1,5 +1,9 @@
 'use strict';
 
+var VectorTile = require('@mapbox/vector-tile').VectorTile;
+var Protobuf = require('pbf');
+
+
 var options = {
         debug: 1
     },
@@ -31,7 +35,7 @@ if (devicePixelRatio > 1) {
 
 ctx.textAlign = 'center';
 ctx.font = '48px Helvetica, Arial';
-ctx.fillText('Drag a GeoJSON or TopoJSON here', height / 2, height / 2);
+ctx.fillText('将一个pbf文件放进来', height / 2, height / 2);
 
 function humanFileSize(size) {
     var i = Math.floor(Math.log(size) / Math.log(1024));
@@ -50,26 +54,28 @@ canvas.ondrop = function (e) {
     this.className = 'loaded';
 
     ctx.clearRect(0, 0, height, height);
-    ctx.fillText('Thanks! Loading...', height / 2, height / 2);
+    ctx.fillText('加载中...', height / 2, height / 2);
 
     var reader = new FileReader();
     reader.onload = function (event) {
-        console.log('data size', humanFileSize(event.target.result.length));
-        console.time('JSON.parse');
+        console.log('data size', humanFileSize(event.target.result.byteLength));
 
-        var data = JSON.parse(event.target.result);
-        console.timeEnd('JSON.parse');
+        var tile = new VectorTile(new Protobuf(event.target.result));
+        console.log(tile);
+        ctx.clearRect(0, 0, height, height);
+        ctx.fillText('解析成功', height / 2, height / 2);
 
-        if (data.type === 'Topology') {
-            var firstKey = Object.keys(data.objects)[0];
-            data = topojson.feature(data, data.objects[firstKey]);
-        }
-
-        tileIndex = geojsonvt(data, options); //eslint-disable-line
-
-        drawTile();
+        // if (data.type === 'Topology') {
+        //     var firstKey = Object.keys(data.objects)[0];
+        //     data = topojson.feature(data, data.objects[firstKey]);
+        // }
+        //
+        // tileIndex = geojsonvt(data, options); //eslint-disable-line
+        //
+        // drawTile();
     };
-    reader.readAsText(e.dataTransfer.files[0]);
+    // reader.readAsText(e.dataTransfer.files[0]);
+    reader.readAsArrayBuffer(e.dataTransfer.files[0]);
 
     e.preventDefault();
     return false;
