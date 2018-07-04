@@ -16,6 +16,7 @@ var options = {
     canvas = document.getElementById('canvas'),
     ctx = canvas.getContext('2d'),
     height = canvas.height = canvas.width = window.innerHeight - 5,
+    // height = canvas.height = canvas.width = 4096,
     ratio = height / totalExtent,
     pad = 4096 * padding * ratio,
 
@@ -60,19 +61,13 @@ canvas.ondrop = function (e) {
     reader.onload = function (event) {
         console.log('data size', humanFileSize(event.target.result.byteLength));
 
-        var tile = new VectorTile(new Protobuf(event.target.result));
-        console.log(tile);
+        var tileInfo = new VectorTile(new Protobuf(event.target.result));
+        var tile = MBTile.read(new Protobuf(event.target.result));
+        console.log(tileInfo);
         ctx.clearRect(0, 0, height, height);
-        ctx.fillText('解析成功', height / 2, height / 2);
+        ctx.fillText('解析成功!结果看控制台！', height / 2, height / 2);
 
-        // if (data.type === 'Topology') {
-        //     var firstKey = Object.keys(data.objects)[0];
-        //     data = topojson.feature(data, data.objects[firstKey]);
-        // }
-        //
-        // tileIndex = geojsonvt(data, options); //eslint-disable-line
-        //
-        // drawTile();
+        drawTile(tile);
     };
     // reader.readAsText(e.dataTransfer.files[0]);
     reader.readAsArrayBuffer(e.dataTransfer.files[0]);
@@ -85,71 +80,181 @@ ctx.lineWidth = 1;
 
 var halfHeight = height / 2;
 
-function drawGrid() {
-    ctx.strokeStyle = 'lightgreen';
-    ctx.strokeRect(pad, pad, height - 2 * pad, height - 2 * pad);
-    ctx.beginPath();
-    ctx.moveTo(pad, halfHeight);
-    ctx.lineTo(height - pad, halfHeight);
-    ctx.moveTo(halfHeight, pad);
-    ctx.lineTo(halfHeight, height - pad);
-    ctx.stroke();
-}
+function drawTile(tile) {
+    let canvas = document.createElement('canvas');
+    canvas.width = 4096;
+    canvas.height = 4096;
+    let context = canvas.getContext('2d');
+    context.scale(0.2,0.2);
+    let layers = tile.layers;
 
-function drawSquare(left, top) {
-    ctx.strokeStyle = 'blue';
-    ctx.strokeRect(left ? pad : halfHeight, top ? pad : halfHeight, halfHeight - pad, halfHeight - pad);
-}
-
-function drawTile() {
-
-    console.time('getting tile z' + z + '-' + x + '-' + y);
-    var tile = tileIndex.getTile(z, x, y);
-    console.timeEnd('getting tile z' + z + '-' + x + '-' + y);
-
-    if (!tile) {
-        console.log('tile empty');
-        zoomOut();
-        return;
-    }
-
-    // console.log('z%d-%d-%d: %d points of %d', z, x, y, tile.numSimplified, tile.numPoints);
-    // console.time('draw');
-
-    ctx.clearRect(0, 0, height, height);
-
-    var features = tile.features;
-
-    ctx.strokeStyle = 'red';
-    ctx.fillStyle = 'rgba(255,0,0,0.05)';
-
-    for (var i = 0; i < features.length; i++) {
-        var feature = features[i],
-            type = feature.type;
-
-        ctx.beginPath();
-
-        for (var j = 0; j < feature.geometry.length; j++) {
-            var geom = feature.geometry[j];
-
-            if (type === 1) {
-                ctx.arc(geom[0] * ratio + pad, geom[1] * ratio + pad, 2, 0, 2 * Math.PI, false);
-                continue;
-            }
-
-            for (var k = 0; k < geom.length; k++) {
-                var p = geom[k];
-                if (k) ctx.lineTo(p[0] * ratio + pad, p[1] * ratio + pad);
-                else ctx.moveTo(p[0] * ratio + pad, p[1] * ratio + pad);
+    //读layer层,根据layer类型进行绘制
+    for (let i = 0, length = layers.length; i < length; i++) {
+        let layer = layers[i];
+        let features = layer.features;
+        for(let j =0, len = features.length;j<len;j++){
+            let feature = features[j];
+            switch (feature.type) {
+                case 0:
+                    break;
+                case 1:
+                    drawPoint(context, feature, layer);
+                    break;
+                case 2:
+                    drawLine(context, feature);
+                    break;
+                case 3:
+                    drawPolygon(context, feature);
+                    break;
             }
         }
-
-        if (type === 3 || type === 1) ctx.fill('evenodd');
-        ctx.stroke();
     }
-    drawGrid();
+
+
+    document.getElementById("canvas").style.display = "none";
+    let div = document.createElement("div");
+    div.height = div.width = window.innerHeight - 5;
+    document.body.appendChild(div);
+    div.appendChild(canvas);
 
     // console.timeEnd('draw');
+}
+
+function drawPoint(context, feature, layer) {
+    var protyValues = layer.values;
+    var offset = 0;
+    context.beginPath();
+    context.font = "60px Open Sans Bold";
+    context.fillStyle = "white";
+
+    var cursor = [0, 0];
+    let geometry = feature.geometry;
+    var tags = feature.tags;
+    var len = geometry.length;
+    while(offset < len){
+        var id = geometry[offset] & 0x7;
+        var count = geometry[offset] >> 3;
+        if(id === 1){
+            while (count>0){
+                var posX = ((geometry[offset+1] >> 1) ^ (-(geometry[offset+1] & 1)));
+                var posY = ((geometry[offset+2] >> 1) ^ (-(geometry[offset+2] & 1)));
+                var name =protyValues[tags[3]].string_value;
+                context.fillText(name,cursor[0] +posX, cursor[1] + posY);
+                cursor = [cursor[0] +posX, cursor[1] + posY];
+                offset += 2;
+                count--;
+            }
+            offset += 1;
+        }else if(id === 2){
+            while (count>0){
+                var posX = ((geometry[offset+1] >> 1) ^ (-(geometry[offset+1] & 1)));
+                var posY = ((geometry[offset+2] >> 1) ^ (-(geometry[offset+2] & 1)));
+                var name =protyValues[tags[3]].string_value;
+                context.fillText(name,cursor[0] +posX, cursor[1] + posY);
+                cursor = [cursor[0] +posX, cursor[1] + posY];
+                offset += 2;
+                count--;
+            }
+            offset +=1;
+        }else{
+            context.closePath();
+        }
+    }
+    context.stroke();
+    context.closePath();
+}
+
+function drawLine(context, feature) {
+    var offset = 0;
+    ctx.beginPath();
+    context.strokeStyle = 'rgb(0.2,0.2,0.2)';
+    context.lineWidth = '5';
+    context.strokeStyle = 'yellow';
+
+
+    let geometry = feature.geometry;
+    //设置游标
+    var cursor = [0, 0];
+    var len = geometry.length;
+    while (offset < len) {
+        var id = geometry[offset] & 0x7;
+        var count = geometry[offset] >> 3;
+        if (id === 1) {
+            while (count > 0) {
+                var posX = ((geometry[offset + 1] >> 1) ^ (-(geometry[offset + 1] & 1)));
+                var posY = ((geometry[offset + 2] >> 1) ^ (-(geometry[offset + 2] & 1)));
+                context.moveTo(cursor[0] + posX, cursor[1] + posY);
+                cursor = [cursor[0] + posX, cursor[1] + posY];
+                offset += 2;
+                count--;
+            }
+            offset += 1;
+        } else if (id === 2) {
+            while (count > 0) {
+                var posX = ((geometry[offset + 1] >> 1) ^ (-(geometry[offset + 1] & 1)));
+                var posY = ((geometry[offset + 2] >> 1) ^ (-(geometry[offset + 2] & 1)));
+                context.lineTo(cursor[0] + posX, cursor[1] + posY);
+                cursor = [cursor[0] + posX, cursor[1] + posY];
+                offset += 2;
+                count--;
+            }
+            offset += 1;
+        } else {
+            context.closePath();
+        }
+    }
+    context.stroke();
+    context.closePath();
+}
+
+function drawPolygon(context, feature) {
+    var flag = false; //在画面的时候，一个要素中可能出现closePath，所以要加一个判断，若中途出现closePath，则下一步继续开始beginPath
+    var offset = 0;
+    context.beginPath();
+    context.lineWidth='3';
+    context.fillStyle = '#343332';
+    context.strokeStyle = '#6E6E6E';
+
+    let geometry = feature.geometry;
+    var cursor = [0, 0];
+    var len = geometry.length;
+    while(offset < len-1){
+        if(flag === true){
+            context.beginPath();
+            context.lineWidth='3';
+            context.fillStyle = '#343332';
+            context.strokeStyle = '#6E6E6E';
+            flag = false;
+        }
+        var id = geometry[offset] & 0x7;
+        var count = geometry[offset] >> 3;
+        if(id === 1){
+            while (count>0){
+                var posX = ((geometry[offset+1] >> 1) ^ (-(geometry[offset+1] & 1)));
+                var posY = ((geometry[offset+2] >> 1) ^ (-(geometry[offset+2] & 1)));
+                context.moveTo(cursor[0] +posX, cursor[1] + posY);
+                cursor = [cursor[0] +posX, cursor[1] + posY];
+                offset += 2;
+                count--;
+            }
+            offset += 1;
+        }else if(id === 2){
+            while (count>0){
+                var posX = ((geometry[offset+1] >> 1) ^ (-(geometry[offset+1] & 1)));
+                var posY = ((geometry[offset+2] >> 1) ^ (-(geometry[offset+2] & 1)));
+                context.lineTo(cursor[0] +posX, cursor[1] + posY);
+                cursor = [cursor[0] +posX, cursor[1] + posY];
+                offset += 2;
+                count--;
+            }
+            offset +=1;
+        }else if(id === 7){
+            context.fill();
+            context.closePath();
+            flag = true;
+            offset++;
+        }
+    }
 }
 
 canvas.onclick = function (e) {
