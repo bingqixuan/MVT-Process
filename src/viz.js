@@ -20,11 +20,8 @@ var options = {
     ratio = height / totalExtent,
     pad = 4096 * padding * ratio,
 
-    backButton = document.getElementById('back'),
+    backButton = document.getElementById('back')
 
-    x = 0,
-    y = 0,
-    z = 0;
 
 if (devicePixelRatio > 1) {
     canvas.style.width = canvas.width + 'px';
@@ -81,11 +78,14 @@ ctx.lineWidth = 1;
 var halfHeight = height / 2;
 
 function drawTile(tile) {
-    let canvas = document.createElement('canvas');
-    canvas.width = 4096;
-    canvas.height = 4096;
-    let context = canvas.getContext('2d');
-    context.scale(0.2,0.2);
+    // let canvas = document.createElement('canvas');
+    // canvas.width = 4096 * 0.2;
+    // canvas.height = 4096 * 0.2;
+    // let context = canvas.getContext('2d');
+
+    let context = ctx;
+    let scale = height / 4096;
+    context.scale(scale, scale);
     let layers = tile.layers;
 
     //读layer层,根据layer类型进行绘制
@@ -112,10 +112,9 @@ function drawTile(tile) {
 
 
     document.getElementById("canvas").style.display = "none";
-    let div = document.createElement("div");
-    div.height = div.width = window.innerHeight - 5;
-    document.body.appendChild(div);
-    div.appendChild(canvas);
+    // let div = document.createElement("div");
+    // canvas.height = canvas.width = window.innerHeight - 5;
+    document.body.appendChild(canvas);
 
     // console.timeEnd('draw');
 }
@@ -257,66 +256,6 @@ function drawPolygon(context, feature) {
     }
 }
 
-canvas.onclick = function (e) {
-    if (!tileIndex || z === 14) return;
-
-    var mouseX = e.layerX - 10,
-        mouseY = e.layerY - 10,
-        left = mouseX / height < 0.5,
-        top = mouseY / height < 0.5;
-
-    z++;
-    x *= 2;
-    y *= 2;
-    if (!left) x++;
-    if (!top) y++;
-
-    drawTile();
-    drawSquare(left, top);
-
-    if (z > 0) backButton.style.display = '';
-};
-
-canvas.onmousemove = function (e) {
-    if (!tileIndex) return;
-
-    var mouseX = e.layerX - 10,
-        mouseY = e.layerY - 10,
-        left = mouseX / height < 0.5,
-        top = mouseY / height < 0.5;
-    drawGrid();
-    drawSquare(left, top);
-};
-
-function zoomOut() {
-    z--;
-    x = Math.floor(x / 2);
-    y = Math.floor(y / 2);
-}
-
 backButton.style.display = 'none';
 
-backButton.onclick = function () {
-    if (!tileIndex) return;
-    zoomOut();
-    drawTile();
-    if (z === 0) backButton.style.display = 'none';
-};
 
-/*eslint-disable no-unused-vars */
-function drillDown() {
-    var i, j;
-    console.time('drill down');
-    for (i = 0; i < 10; i++) {
-        for (j = 0; j < 10; j++) {
-            tileIndex.getTile(7, 30 + i, 45 + j);
-        }
-    }
-    for (i = 0; i < 10; i++) {
-        for (j = 0; j < 10; j++) {
-            tileIndex.getTile(8, 70 + i, 100 + j);
-        }
-    }
-    console.timeEnd('drill down');
-}
-/*eslint-enable no-unused-vars */
