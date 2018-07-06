@@ -78,11 +78,7 @@ ctx.lineWidth = 1;
 var halfHeight = height / 2;
 
 function drawTile(tile) {
-    // let canvas = document.createElement('canvas');
-    // canvas.width = 4096 * 0.2;
-    // canvas.height = 4096 * 0.2;
-    // let context = canvas.getContext('2d');
-
+    ctx.clearRect(0,0,height,height)
     let context = ctx;
     let scale = height / 4096;
     context.scale(scale, scale);
@@ -109,14 +105,6 @@ function drawTile(tile) {
             }
         }
     }
-
-
-    document.getElementById("canvas").style.display = "none";
-    // let div = document.createElement("div");
-    // canvas.height = canvas.width = window.innerHeight - 5;
-    document.body.appendChild(canvas);
-
-    // console.timeEnd('draw');
 }
 
 function drawPoint(context, feature, layer) {
