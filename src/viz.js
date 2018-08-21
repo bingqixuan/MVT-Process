@@ -18,9 +18,7 @@ var options = {
     height = canvas.height = canvas.width = window.innerHeight - 5,
     // height = canvas.height = canvas.width = 4096,
     ratio = height / totalExtent,
-    pad = 4096 * padding * ratio,
-
-    backButton = document.getElementById('back')
+    pad = 4096 * padding * ratio;
 
 
 if (devicePixelRatio > 1) {
@@ -244,6 +242,5 @@ function drawPolygon(context, feature) {
     }
 }
 
-backButton.style.display = 'none';
 
 
